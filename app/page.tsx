@@ -86,7 +86,9 @@ const PROVIDERS = [
           (docs)
         </a>
       </>,
-      <>Give it a name and paste the endpoint URL</>,
+      <>
+        Give it a name and paste the URL: <code>{ENDPOINT}</code>
+      </>,
       <>Select the Streamable HTTP transport and connect</>,
     ],
   },
