@@ -81,6 +81,27 @@ function summarizeTrip(trip: Trip): string {
   return lines.join('\n');
 }
 
+// Throttle outgoing requests to the paddling.pl API (~3 req/s), to avoid
+// hammering the public endpoint with bursts.
+const MIN_INTERVAL_MS = 333;
+let lastRequestAt = 0;
+async function throttled<T>(fn: () => Promise<T>): Promise<T> {
+  const wait = Math.max(0, MIN_INTERVAL_MS - (Date.now() - lastRequestAt));
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastRequestAt = Date.now();
+  return fn();
+}
+
+async function fetchJson(url: string): Promise<unknown> {
+  return throttled(async () => {
+    const response = await fetch(url, { headers: { accept: 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`paddling.pl API error: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  });
+}
+
 const handler = createMcpHandler(
   (server) => {
     server.registerTool(
@@ -102,13 +123,7 @@ const handler = createMcpHandler(
       },
       async ({ page = 0, size = 20 }) => {
         const url = `${TRIPS_API_URL}?page=${page}&size=${size}`;
-        const response = await fetch(url, { headers: { accept: 'application/json' } });
-
-        if (!response.ok) {
-          throw new Error(`paddling.pl API error: ${response.status} ${response.statusText}`);
-        }
-
-        const result = (await response.json()) as TripsResponse;
+        const result = (await fetchJson(url)) as TripsResponse;
 
         const lines = result.data.length > 0
           ? result.data.map(summarizeTrip)
@@ -142,13 +157,7 @@ const handler = createMcpHandler(
       },
       async ({ tripId }) => {
         const url = `${TRIP_AVAILABILITY_API_URL}?tripId=${tripId}`;
-        const response = await fetch(url, { headers: { accept: 'application/json' } });
-
-        if (!response.ok) {
-          throw new Error(`paddling.pl API error: ${response.status} ${response.statusText}`);
-        }
-
-        const result = (await response.json()) as { dates: string[] };
+        const result = (await fetchJson(url)) as { dates: string[] };
 
         const lines =
           result.dates.length > 0
@@ -180,13 +189,7 @@ const handler = createMcpHandler(
       },
       async ({ tripId, date }) => {
         const url = `${TRIP_AVAILABLE_RESOURCES_API_URL}?tripId=${tripId}&date=${date}`;
-        const response = await fetch(url, { headers: { accept: 'application/json' } });
-
-        if (!response.ok) {
-          throw new Error(`paddling.pl API error: ${response.status} ${response.statusText}`);
-        }
-
-        const result = (await response.json()) as {
+        const result = (await fetchJson(url)) as {
           resources: Array<{
             resourceTypeId: string;
             name: string;

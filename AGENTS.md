@@ -32,6 +32,13 @@ path) and no Redis. Requires `@modelcontextprotocol/server` (v2) and zod ^4.
 A **1.x** release used the old API (`server.tool(...)`, `basePath`,
 `@modelcontextprotocol/sdk` 1.x) — don't revert to it.
 
+## paddling.pl API calls
+
+All outgoing HTTP requests to the paddling.pl API must go through the
+`fetchJson(url)` helper in `app/api/mcp/route.ts` — **never call `fetch`
+directly**. `fetchJson` enforces the anti-hammering throttle (~3 req/s,
+333 ms min interval) and shared error handling for all real API calls.
+
 ## Runtime quirks
 
 - mcp-handler 2.x serves the Streamable HTTP transport in **stateless mode**:
