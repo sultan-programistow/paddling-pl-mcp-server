@@ -33,13 +33,12 @@ For local development, the endpoint is served at `http://localhost:3000/api/mcp`
 
 ## Available tools
 
-| Tool       | Description            | Arguments                         |
-| ---------- | ---------------------- | --------------------------------- |
-| `roll_dice`| Rolls an N-sided die   | `sides` (integer, minimum 2)      |
+| Tool          | Description                                        | Arguments                                  |
+| ------------- | -------------------------------------------------- | ------------------------------------------ |
+| `search_trips`| Lists kayaking trips from paddling.pl             | `page` (int ≥ 0), `size` (int 1–100)       |
 
-> The current tool is the `roll_dice` example from the Vercel docs. This is the
-> placeholder to verify the setup works end-to-end — it will be replaced by
-> paddling.pl tools (list adventures, get details, book an adventure, …).
+> More paddling.pl tools (get trip details, book an adventure, …) are coming
+> soon.
 
 ## For developers
 
@@ -77,6 +76,6 @@ local testing needs **no Redis** (the SSE transport was removed in 2.x). The
 
 ### Next steps
 
-- [ ] Replace `roll_dice` with real paddling.pl tools
+- [ ] Add more paddling.pl tools (get trip details, book an adventure, …)
 - [ ] Enable authorization (OAuth) with `withMcpAuth` + an OAuth metadata endpoint
 - [ ] Deploy to Vercel and connect an MCP host (Cursor / Claude Desktop)

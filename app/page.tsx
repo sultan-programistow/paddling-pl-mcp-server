@@ -6,9 +6,9 @@ const ENDPOINT = 'https://paddling-pl-mcp-server.vercel.app/api/mcp';
 
 const TOOLS = [
   {
-    name: 'roll_dice',
-    description: 'Rolls an N-sided die',
-    args: 'sides (integer, minimum 2)',
+    name: 'search_trips',
+    description: 'Lists kayaking trips from paddling.pl',
+    args: 'page (int ≥ 0), size (int 1–100)',
   },
 ];
 

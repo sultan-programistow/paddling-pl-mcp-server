@@ -39,6 +39,6 @@ A **1.x** release used the old API (`server.tool(...)`, `basePath`,
   not needed or used).
 - `.env` exists locally but is gitignored — treat its contents as secrets; never
   log or commit them.
-- Not a git repository (yet). Next steps per README: replace the placeholder
-  `roll_dice` tool with real paddling.pl tools, add OAuth (`withMcpAuth` +
-  OAuth metadata endpoint), then deploy to Vercel.
+- Not a git repository (yet). Next steps per README: add more paddling.pl tools
+  (get trip details, book an adventure), add OAuth (`withMcpAuth` + OAuth
+  metadata endpoint), then deploy to Vercel.
