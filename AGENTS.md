@@ -29,8 +29,6 @@ with an `inputSchema` that takes a full Standard Schema (`z.object({...})`),
 inside `createMcpHandler(..., { serverInfo })`, exporting the handler as
 `GET`/`POST`. There is no `basePath` (the handler is mounted at the route's own
 path) and no Redis. Requires `@modelcontextprotocol/server` (v2) and zod ^4.
-A **1.x** release used the old API (`server.tool(...)`, `basePath`,
-`@modelcontextprotocol/sdk` 1.x) — don't revert to it.
 
 ## paddling.pl API calls
 
@@ -62,6 +60,3 @@ Known paddling.pl API endpoints (base `https://paddling.pl/api`):
   not needed or used).
 - `.env` exists locally but is gitignored — treat its contents as secrets; never
   log or commit them.
-- Not a git repository (yet). Next steps per README: add more paddling.pl tools
-  (get trip details, book an adventure), add OAuth (`withMcpAuth` + OAuth
-  metadata endpoint), then deploy to Vercel.

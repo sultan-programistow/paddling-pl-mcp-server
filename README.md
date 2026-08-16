@@ -19,10 +19,6 @@ availability, and reserve & pay online in minutes, while organizers gain a
 modern channel to reach new customers. Its mission is to digitize and simplify
 the Polish kayaking market.
 
-> **Status:** Step 1 of the Vercel guide — the MCP server is implemented and
-> ready to be **tested locally**. OAuth and deployment to Vercel are the next
-> (not yet done) steps.
-
 ## Endpoint
 
 ```
