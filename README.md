@@ -26,19 +26,26 @@ the Polish kayaking market.
 ## Endpoint
 
 ```
-https://paddling-pl-mcp-server.vercel.app/api/mcp   (Streamable HTTP transport)
+https://paddling-pl-mcp-server.vercel.app/api/mcp
 ```
 
 For local development, the endpoint is served at `http://localhost:3000/api/mcp`.
 
 ## Available tools
 
-| Tool          | Description                                        | Arguments                                  |
-| ------------- | -------------------------------------------------- | ------------------------------------------ |
-| `search_trips`| Lists kayaking trips from paddling.pl             | `page` (int ≥ 0), `size` (int 1–100)       |
+| Tool                   | Description                                                                 | Arguments                                             |
+| ---------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `search_trips`         | Lists kayaking trips, optionally filtered; includes a direct link per trip  | `voivodeships` (array of region codes), `dateFrom`/`dateTo` (YYYY-MM-DD), `minPersons` (int ≥ 1), `page` (int ≥ 0), `size` (int 1–100) |
+| `get_trip_availability`| Returns the available dates for a trip                                      | `tripId` (UUID)                                       |
+| `get_trip_resources`   | Source of truth for real equipment availability on a given date            | `tripId` (UUID), `date` (YYYY-MM-DD)                  |
 
-> More paddling.pl tools (get trip details, book an adventure, …) are coming
-> soon.
+`search_trips` `voivodeships` accept any of: `DOLNOSLASKIE`, `KUJAWSKO_POMORSKIE`,
+`LUBELSKIE`, `LUBUSKIE`, `LODZKIE`, `MALOPOLSKIE`, `MAZOWIECKIE`, `OPOLSKIE`,
+`PODKARPACKIE`, `PODLASKIE`, `POMORSKIE`, `SLASKIE`, `SWIETOKRZYSKIE`,
+`WARMINSKO_MAZURSKIE`, `WIELKOPOLSKIE`, `ZACHODNIOPOMORSKIE`, `ZAGRANICA`.
+
+> Trip links from `search_trips` use the form
+> `https://paddling.pl/trips/{rentalSlug}/{tripSlug}`.
 
 ## For developers
 
@@ -66,16 +73,3 @@ Test the server with the MCP Inspector via `npm run inspect` (see the
 app/api/mcp/route.ts   # ← the MCP server (createMcpHandler + tools)
 app/page.tsx           # landing page
 ```
-
-### Version notes
-
-mcp-handler 2.x serves the Streamable HTTP transport in **stateless mode**, so
-local testing needs **no Redis** (the SSE transport was removed in 2.x). The
-2.x API uses `server.registerTool(...)` with a full Standard Schema
-(`z.object({...})`) — no `basePath`. Requires Node.js 20+.
-
-### Next steps
-
-- [ ] Add more paddling.pl tools (get trip details, book an adventure, …)
-- [ ] Enable authorization (OAuth) with `withMcpAuth` + an OAuth metadata endpoint
-- [ ] Deploy to Vercel and connect an MCP host (Cursor / Claude Desktop)

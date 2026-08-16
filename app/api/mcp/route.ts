@@ -26,6 +26,69 @@ const VOIVODESHIPS = [
   'ZAGRANICA',
 ];
 
+const DIFFICULTIES = ['EASY', 'AVERAGE', 'ADVANCED'] as const;
+
+const RIVERS = [
+  'ara',
+  'biala-hancza',
+  'biala-lada',
+  'biebrza',
+  'brda',
+  'chodelka',
+  'czarna-hancza',
+  'czarna-nida',
+  'czarna-woda',
+  'czernica',
+  'debrzynka',
+  'dobrzyca',
+  'drawa',
+  'dunajec',
+  'enns',
+  'glomia',
+  'gwda',
+  'inn',
+  'jegrznia',
+  'kanal-augustowski',
+  'kocunia',
+  'krutynia',
+  'kwisa',
+  'lobzonka',
+  'lyna',
+  'mala-panew',
+  'marycha',
+  'motlawa',
+  'nida',
+  'omulew',
+  'orzyc',
+  'piasnica',
+  'pilawa',
+  'pilica',
+  'radunia',
+  'rawka',
+  'reda',
+  'rega',
+  'rospuda',
+  'rurzyca',
+  'salza',
+  'san',
+  'sapina',
+  'sava',
+  'skicka-struga',
+  'soca',
+  'solokija',
+  'szczyra',
+  'tanew',
+  'vjosa',
+  'vorderrhein',
+  'warta',
+  'wda',
+  'wegorapa',
+  'wierzyca',
+  'wisla',
+  'wkra',
+  'zbrzyca',
+];
+
 type Amenity = {
   type: string;
   name: string;
@@ -195,7 +258,7 @@ const handler = createMcpHandler(
       {
         title: 'Search Trips',
         description:
-          'Lists kayaking trips available on paddling.pl. Returns a summarized overview of each trip including river, route, distance, duration, difficulty, price, voivodeship, amenities, and the trip image URL, as well as a direct link to the trip on paddling.pl (format: https://paddling.pl/trips/{rentalSlug}/{tripSlug}). When the user asks for links to specific trips, provide the link field. Can filter by one or more voivodeships (regions), a date range (dateFrom/dateTo), and a minimum group size (minPersons). Supports pagination: use page/size to navigate the full catalog. Note: the summary is not authoritative about real equipment availability — to confirm whether specific equipment (e.g. SUPs) is actually available, call get_trip_resources, which is the source of truth.',
+          'Lists kayaking trips available on paddling.pl. Returns a summarized overview of each trip including river, route, distance, duration, difficulty, price, voivodeship, amenities, and the trip image URL, as well as a direct link to the trip on paddling.pl (format: https://paddling.pl/trips/{rentalSlug}/{tripSlug}). When the user asks for links to specific trips, provide the link field. Can filter by voivodeships (regions), a date range (dateFrom/dateTo), minimum group size (minPersons), difficulty, child-friendliness (childFriendly), multi-day trips (multiDay), price range (priceMin/priceMax), duration range in minutes (durationMin/durationMax), and river. Supports pagination: use page/size to navigate the full catalog. Note: the summary is not authoritative about real equipment availability — to confirm whether specific equipment (e.g. SUPs) is actually available, call get_trip_resources, which is the source of truth.',
         inputSchema: z.object({
           voivodeships: z
             .array(z.enum(VOIVODESHIPS))
@@ -219,6 +282,44 @@ const handler = createMcpHandler(
             .min(1)
             .optional()
             .describe('Only trips that can accommodate at least this many persons.'),
+          difficulty: z
+            .enum(DIFFICULTIES)
+            .optional()
+            .describe('Filter trips by difficulty: EASY, AVERAGE, or ADVANCED.'),
+          childFriendly: z
+            .boolean()
+            .optional()
+            .describe('When true, only trips suitable for children are returned.'),
+          multiDay: z
+            .boolean()
+            .optional()
+            .describe('When true, only multi-day trips are returned.'),
+          priceMin: z
+            .number()
+            .min(0)
+            .optional()
+            .describe('Minimum price in PLN.'),
+          priceMax: z
+            .number()
+            .min(0)
+            .optional()
+            .describe('Maximum price in PLN.'),
+          durationMin: z
+            .number()
+            .int()
+            .min(1)
+            .optional()
+            .describe('Minimum trip duration in minutes (e.g. 1440 = 1 day).'),
+          durationMax: z
+            .number()
+            .int()
+            .min(1)
+            .optional()
+            .describe('Maximum trip duration in minutes (e.g. 7200 = 5 days).'),
+          river: z
+            .enum(RIVERS)
+            .optional()
+            .describe('Filter by river (lower-case slug without Polish diacritics, e.g. chodelka, czarna-hancza).'),
           page: z.number().int().min(0).default(0).describe('Page number, 0-indexed.'),
           size: z
             .number()
@@ -229,7 +330,22 @@ const handler = createMcpHandler(
             .describe('Number of trips per page (max 100).'),
         }),
       },
-      async ({ voivodeships, dateFrom, dateTo, minPersons, page = 0, size = 20 }) => {
+      async ({
+        voivodeships,
+        dateFrom,
+        dateTo,
+        minPersons,
+        difficulty,
+        childFriendly,
+        multiDay,
+        priceMin,
+        priceMax,
+        durationMin,
+        durationMax,
+        river,
+        page = 0,
+        size = 20,
+      }) => {
         const params = new URLSearchParams();
         for (const voivodeship of voivodeships ?? []) {
           params.append('voivodeship', voivodeship);
@@ -237,6 +353,14 @@ const handler = createMcpHandler(
         if (dateFrom) params.set('dateFrom', dateFrom);
         if (dateTo) params.set('dateTo', dateTo);
         if (minPersons) params.set('minPersons', String(minPersons));
+        if (difficulty) params.set('difficulty', difficulty);
+        if (childFriendly !== undefined) params.set('childFriendly', String(childFriendly));
+        if (multiDay !== undefined) params.set('multiDay', String(multiDay));
+        if (priceMin !== undefined) params.set('priceMin', String(priceMin));
+        if (priceMax !== undefined) params.set('priceMax', String(priceMax));
+        if (durationMin !== undefined) params.set('durationMin', String(durationMin));
+        if (durationMax !== undefined) params.set('durationMax', String(durationMax));
+        if (river) params.set('river', river);
         params.set('page', String(page));
         params.set('size', String(size));
         const url = `${TRIPS_API_URL}?${params.toString()}`;

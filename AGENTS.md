@@ -39,6 +39,22 @@ All outgoing HTTP requests to the paddling.pl API must go through the
 directly**. `fetchJson` enforces the anti-hammering throttle (~3 req/s,
 333 ms min interval) and shared error handling for all real API calls.
 
+Known paddling.pl API endpoints (base `https://paddling.pl/api`):
+
+- `GET /trips` — search; supports repeated `voivodeship`, plus `dateFrom`,
+  `dateTo`, `minPersons`, `difficulty` (EASY/AVERAGE/ADVANCED),
+  `childFriendly`, `multiDay`, `priceMin`, `priceMax`, `durationMin`/
+  `durationMax` (in **minutes**), `river` (slug), `page`, `size`.
+- `GET /trip-availability?tripId={uuid}` — returns `{ dates: string[] }`.
+- `GET /trip-available-resources?tripId={uuid}&date={YYYY-MM-DD}` — returns
+  `{ resources: [...] }`; source of truth for real equipment availability.
+- `GET /voivodeships` — enumeration endpoint; list is hardcoded in
+  `route.ts` as `VOIVODESHIPS`.
+- `GET /rivers` — enumeration endpoint (returns 57 lowercase river slugs
+  without diacritics, e.g. `chodelka`, `czarna-hancza`); hardcoded as `RIVERS`.
+  Discovered by guessing the parallel of `/voivodeships` — the trips response
+  never exposes the full river list, only per-trip `riverName`.
+
 ## Runtime quirks
 
 - mcp-handler 2.x serves the Streamable HTTP transport in **stateless mode**:
