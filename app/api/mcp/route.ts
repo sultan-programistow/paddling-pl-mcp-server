@@ -124,6 +124,70 @@ async function fetchJson(url: string): Promise<unknown> {
   });
 }
 
+// Drift detector. The paddling.pl API is unofficial and may change without
+// notice. If critical fields disappear (renamed/removed in the backend), fail
+// loudly with an actionable hint instead of returning a silent, mangled result.
+// Only CRITICAL fields are checked; a cosmetic contract change must not break
+// the server. An empty result (e.g. no trips, no dates) is NOT drift.
+const API_CHANGED_HINT =
+  'The paddling.pl API response does not match the known contract (captured 2026-08) - ' +
+  'the backend has likely changed. Report it: ' +
+  'https://github.com/sultan-programistow/paddling-pl-mcp-server/issues';
+
+function tripDriftError(resp: unknown): string | null {
+  if (typeof resp !== 'object' || resp === null) {
+    return 'the trips response is not a JSON object';
+  }
+  const r = resp as TripsResponse;
+  if (!Array.isArray(r.data)) {
+    return "the trips response is missing the 'data' array";
+  }
+  if (r.data.length === 0) return null; // empty result is not drift
+  const t = r.data[0];
+  for (const key of ['id', 'tripName', 'tripSlug', 'rentalSlug', 'priceFrom'] as const) {
+    if (t[key] === undefined) {
+      return `the trips results are missing the critical field '${key}'`;
+    }
+  }
+  return null;
+}
+
+function availabilityDriftError(resp: unknown): string | null {
+  if (typeof resp !== 'object' || resp === null) {
+    return 'the availability response is not a JSON object';
+  }
+  const r = resp as { dates: string[] };
+  if (!Array.isArray(r.dates)) {
+    return "the availability response is missing the 'dates' array";
+  }
+  return null;
+}
+
+function resourcesDriftError(resp: unknown): string | null {
+  if (typeof resp !== 'object' || resp === null) {
+    return 'the resources response is not a JSON object';
+  }
+  const r = resp as {
+    resources: Array<{ resourceTypeId: string; name: string; personCapacity: number; available: number }>;
+  };
+  if (!Array.isArray(r.resources)) {
+    return "the resources response is missing the 'resources' array";
+  }
+  if (r.resources.length === 0) return null; // empty result is not drift
+  const resource = r.resources[0];
+  for (const key of ['resourceTypeId', 'name', 'personCapacity', 'available'] as const) {
+    if (resource[key] === undefined) {
+      return `the resources results are missing the critical field '${key}'`;
+    }
+  }
+  return null;
+}
+
+function driftError(drift: string | null): Error | null {
+  if (!drift) return null;
+  return new Error(`${drift}. ${API_CHANGED_HINT}`);
+}
+
 const handler = createMcpHandler(
   (server) => {
     server.registerTool(
@@ -131,7 +195,7 @@ const handler = createMcpHandler(
       {
         title: 'Search Trips',
         description:
-          'Lists kayaking trips available on paddling.pl. Returns a summarized overview of each trip including river, route, distance, duration, difficulty, price, voivodeship, amenities, and the trip image URL, as well as a direct link to the trip on paddling.pl (format: https://paddling.pl/trips/{rentalSlug}/{tripSlug}). When the user asks for links to specific trips, provide the link field. Can filter by one or more voivodeships (regions). Supports pagination: use page/size to navigate the full catalog.',
+          'Lists kayaking trips available on paddling.pl. Returns a summarized overview of each trip including river, route, distance, duration, difficulty, price, voivodeship, amenities, and the trip image URL, as well as a direct link to the trip on paddling.pl (format: https://paddling.pl/trips/{rentalSlug}/{tripSlug}). When the user asks for links to specific trips, provide the link field. Can filter by one or more voivodeships (regions), a date range (dateFrom/dateTo), and a minimum group size (minPersons). Supports pagination: use page/size to navigate the full catalog. Note: the summary is not authoritative about real equipment availability — to confirm whether specific equipment (e.g. SUPs) is actually available, call get_trip_resources, which is the source of truth.',
         inputSchema: z.object({
           voivodeships: z
             .array(z.enum(VOIVODESHIPS))
@@ -139,6 +203,22 @@ const handler = createMcpHandler(
             .describe(
               'Filter trips to these voivodeships (regions). Leave empty to return trips from all regions.',
             ),
+          dateFrom: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .optional()
+            .describe('Only trips available on or after this date, formatted as YYYY-MM-DD.'),
+          dateTo: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .optional()
+            .describe('Only trips available on or before this date, formatted as YYYY-MM-DD.'),
+          minPersons: z
+            .number()
+            .int()
+            .min(1)
+            .optional()
+            .describe('Only trips that can accommodate at least this many persons.'),
           page: z.number().int().min(0).default(0).describe('Page number, 0-indexed.'),
           size: z
             .number()
@@ -149,15 +229,20 @@ const handler = createMcpHandler(
             .describe('Number of trips per page (max 100).'),
         }),
       },
-      async ({ voivodeships, page = 0, size = 20 }) => {
+      async ({ voivodeships, dateFrom, dateTo, minPersons, page = 0, size = 20 }) => {
         const params = new URLSearchParams();
         for (const voivodeship of voivodeships ?? []) {
           params.append('voivodeship', voivodeship);
         }
+        if (dateFrom) params.set('dateFrom', dateFrom);
+        if (dateTo) params.set('dateTo', dateTo);
+        if (minPersons) params.set('minPersons', String(minPersons));
         params.set('page', String(page));
         params.set('size', String(size));
         const url = `${TRIPS_API_URL}?${params.toString()}`;
         const result = (await fetchJson(url)) as TripsResponse;
+        const drift = driftError(tripDriftError(result));
+        if (drift) throw drift;
 
         const lines = result.data.length > 0
           ? result.data.map(summarizeTrip)
@@ -192,6 +277,8 @@ const handler = createMcpHandler(
       async ({ tripId }) => {
         const url = `${TRIP_AVAILABILITY_API_URL}?tripId=${tripId}`;
         const result = (await fetchJson(url)) as { dates: string[] };
+        const drift = driftError(availabilityDriftError(result));
+        if (drift) throw drift;
 
         const lines =
           result.dates.length > 0
@@ -209,7 +296,7 @@ const handler = createMcpHandler(
       {
         title: 'Get Trip Resources',
         description:
-          'Returns the available equipment resources (e.g. kayaks by capacity) and how many units are still free for a specific paddling.pl trip on a given date. The tripId is the id field returned by search_trips; the date should be one of the available dates returned by get_trip_availability, formatted as YYYY-MM-DD.',
+          'Returns the available equipment resources (e.g. kayaks by capacity) and how many units are still free for a specific paddling.pl trip on a given date. This tool is the source of truth for real equipment availability: information in the trip description from search_trips (e.g. amenities) is not authoritative and may be outdated or incomplete. Always call this tool to confirm whether specific equipment (e.g. SUPs) is actually available, even if the search_trips description suggests otherwise. The tripId is the id field returned by search_trips; the date should be one of the available dates returned by get_trip_availability, formatted as YYYY-MM-DD.',
         inputSchema: z.object({
           tripId: z
             .string()
@@ -231,6 +318,8 @@ const handler = createMcpHandler(
             available: number;
           }>;
         };
+        const drift = driftError(resourcesDriftError(result));
+        if (drift) throw drift;
 
         if (result.resources.length === 0) {
           return {
