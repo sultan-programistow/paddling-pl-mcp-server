@@ -6,6 +6,26 @@ const TRIPS_API_URL = `${BASE_URL}/trips`;
 const TRIP_AVAILABILITY_API_URL = `${BASE_URL}/trip-availability`;
 const TRIP_AVAILABLE_RESOURCES_API_URL = `${BASE_URL}/trip-available-resources`;
 
+const VOIVODESHIPS = [
+  'DOLNOSLASKIE',
+  'KUJAWSKO_POMORSKIE',
+  'LUBELSKIE',
+  'LUBUSKIE',
+  'LODZKIE',
+  'MALOPOLSKIE',
+  'MAZOWIECKIE',
+  'OPOLSKIE',
+  'PODKARPACKIE',
+  'PODLASKIE',
+  'POMORSKIE',
+  'SLASKIE',
+  'SWIETOKRZYSKIE',
+  'WARMINSKO_MAZURSKIE',
+  'WIELKOPOLSKIE',
+  'ZACHODNIOPOMORSKIE',
+  'ZAGRANICA',
+];
+
 type Amenity = {
   type: string;
   name: string;
@@ -67,8 +87,10 @@ function formatAmenity(amenity: Amenity): string {
 }
 
 function summarizeTrip(trip: Trip): string {
+  const tripUrl = `https://paddling.pl/trips/${trip.rentalSlug}/${trip.tripSlug}`;
   const lines = [
     `- ${trip.tripName} (id: ${trip.id})`,
+    `  Link: ${tripUrl}`,
     `  River: ${trip.riverName} | Difficulty: ${trip.difficulty} | Voivodeship: ${trip.voivodeship}`,
     `  Route: ${trip.startLocation} → ${trip.endLocation}`,
     `  Distance: ${trip.distance} | Duration: ${trip.duration} | Start: ${trip.startTime}`,
@@ -109,8 +131,14 @@ const handler = createMcpHandler(
       {
         title: 'Search Trips',
         description:
-          'Lists kayaking trips available on paddling.pl. Returns a summarized overview of each trip including river, route, distance, duration, difficulty, price, voivodeship, amenities, and the trip image URL. Supports pagination: use page/size to navigate the full catalog.',
+          'Lists kayaking trips available on paddling.pl. Returns a summarized overview of each trip including river, route, distance, duration, difficulty, price, voivodeship, amenities, and the trip image URL, as well as a direct link to the trip on paddling.pl (format: https://paddling.pl/trips/{rentalSlug}/{tripSlug}). When the user asks for links to specific trips, provide the link field. Can filter by one or more voivodeships (regions). Supports pagination: use page/size to navigate the full catalog.',
         inputSchema: z.object({
+          voivodeships: z
+            .array(z.enum(VOIVODESHIPS))
+            .optional()
+            .describe(
+              'Filter trips to these voivodeships (regions). Leave empty to return trips from all regions.',
+            ),
           page: z.number().int().min(0).default(0).describe('Page number, 0-indexed.'),
           size: z
             .number()
@@ -121,8 +149,14 @@ const handler = createMcpHandler(
             .describe('Number of trips per page (max 100).'),
         }),
       },
-      async ({ page = 0, size = 20 }) => {
-        const url = `${TRIPS_API_URL}?page=${page}&size=${size}`;
+      async ({ voivodeships, page = 0, size = 20 }) => {
+        const params = new URLSearchParams();
+        for (const voivodeship of voivodeships ?? []) {
+          params.append('voivodeship', voivodeship);
+        }
+        params.set('page', String(page));
+        params.set('size', String(size));
+        const url = `${TRIPS_API_URL}?${params.toString()}`;
         const result = (await fetchJson(url)) as TripsResponse;
 
         const lines = result.data.length > 0

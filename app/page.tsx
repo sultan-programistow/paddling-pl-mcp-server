@@ -10,6 +10,16 @@ const TOOLS = [
     description: 'Lists kayaking trips from paddling.pl',
     args: 'page (int ≥ 0), size (int 1–100)',
   },
+  {
+    name: 'get_trip_availability',
+    description: 'Returns available dates for a trip',
+    args: 'tripId (UUID)',
+  },
+  {
+    name: 'get_trip_resources',
+    description: 'Returns available resources and seats for a trip on a date',
+    args: 'tripId (UUID), date (YYYY-MM-DD)',
+  },
 ];
 
 const PROVIDERS = [
@@ -17,9 +27,17 @@ const PROVIDERS = [
     name: 'ChatGPT',
     steps: [
       <>
-        Open ChatGPT → Settings → Workspace → Connectors{' '}
+        Enable{' '}
         <a
-          href="https://help.openai.com/en/articles/11487775-connectors-in-chatgpt"
+          href="https://chatgpt.com/#settings/Security?section=developer-mode"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Developer mode
+        </a>{' '}
+        in ChatGPT: open Settings → Security and login{' '}
+        <a
+          href="https://developers.openai.com/api/docs/guides/developer-mode"
           target="_blank"
           rel="noreferrer"
         >
@@ -27,7 +45,12 @@ const PROVIDERS = [
         </a>
       </>,
       <>
-        Click "Add a connector", choose a custom connector
+        Go to{' '}
+        <a href="https://chatgpt.com/plugins" target="_blank" rel="noreferrer">
+          ChatGPT Plugins
+        </a>{' '}
+        and select the <strong>plus</strong> button to create a developer-mode
+        app for your remote MCP server
       </>,
       <>
         Paste the endpoint URL: <code>{ENDPOINT}</code>
@@ -117,7 +140,7 @@ export default function Home() {
         Model Context Protocol server for <strong>paddling.pl</strong> — a
         Polish marketplace for booking kayaking trips. Connect it to any MCP
         host (ChatGPT, Claude, Cursor, LM Studio, …) to let your AI assistant
-        discover and book paddling adventures.
+        discover and list paddling adventures.
       </p>
 
       <h2>Endpoint</h2>
@@ -133,10 +156,6 @@ export default function Home() {
           </li>
         ))}
       </ul>
-      <p>
-        More paddling.pl tools (list adventures, get details, book an
-        adventure, …) are coming soon.
-      </p>
 
       <h2>Connect it to your AI assistant</h2>
       <select
