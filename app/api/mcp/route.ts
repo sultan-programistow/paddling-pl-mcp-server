@@ -3,10 +3,15 @@ import { createMcpHandler } from 'mcp-handler';
 
 const handler = createMcpHandler(
   (server) => {
-    server.tool(
+    server.registerTool(
       'roll_dice',
-      'Rolls an N-sided die',
-      { sides: z.number().int().min(2) },
+      {
+        title: 'Roll Dice',
+        description: 'Rolls an N-sided die',
+        inputSchema: z.object({
+          sides: z.number().int().min(2),
+        }),
+      },
       async ({ sides }) => {
         const value = 1 + Math.floor(Math.random() * sides);
         return {
@@ -15,8 +20,12 @@ const handler = createMcpHandler(
       },
     );
   },
-  {},
-  { basePath: '/api' },
+  {
+    serverInfo: {
+      name: 'paddling-pl-mcp-server',
+      version: '0.1.0',
+    },
+  },
 );
 
-export { handler as GET, handler as POST, handler as DELETE };
+export { handler as GET, handler as POST };

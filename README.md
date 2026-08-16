@@ -46,10 +46,10 @@ For local development, the endpoint is served at `http://localhost:3000/api/mcp`
 ### Stack
 
 - **Next.js 16** (App Router) — hosts the MCP endpoint as an API route
-- **mcp-handler 1.x** — turns the MCP server into a Web-standard HTTP handler
-- **@modelcontextprotocol/sdk 1.26** — the MCP protocol implementation
+- **mcp-handler 2.x** — turns the MCP server into a Web-standard HTTP handler
+- **@modelcontextprotocol/server 2** — the MCP protocol implementation
 - **zod 4** — input schema validation for tool arguments
-- **TypeScript 5**
+- **TypeScript 7**
 
 ### Getting started
 
@@ -70,10 +70,10 @@ app/page.tsx           # landing page
 
 ### Version notes
 
-mcp-handler 1.x runs the Streamable HTTP transport in **stateless mode**, so
-local testing needs **no Redis** (Redis is only required for the SSE endpoint,
-which we don't use). Keep the 1.x API (`server.tool(...)`, `basePath`) — the
-2.x release uses an incompatible API (`server.registerTool(...)`).
+mcp-handler 2.x serves the Streamable HTTP transport in **stateless mode**, so
+local testing needs **no Redis** (the SSE transport was removed in 2.x). The
+2.x API uses `server.registerTool(...)` with a full Standard Schema
+(`z.object({...})`) — no `basePath`. Requires Node.js 20+.
 
 ### Next steps
 

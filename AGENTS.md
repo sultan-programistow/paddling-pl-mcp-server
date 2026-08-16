@@ -22,19 +22,21 @@ page. `CLAUDE.md` just imports this file.
 - `npm run inspect` — launch MCP Inspector at http://127.0.0.1:6274; connect to `http://localhost:3000/api/mcp` (Streamable HTTP) to exercise tools
 - `npx tsc --noEmit` — standalone typecheck (tsconfig sets `strict: true`)
 
-## mcp-handler 1.x — don't "fix" the API
+## mcp-handler 2.x API
 
-`app/api/mcp/route.ts` uses the mcp-handler **1.x** API: `server.tool(...)` inside
-`createMcpHandler(..., { basePath: '/api' })`, exporting the handler as
-`GET`/`POST`/`DELETE`. A **2.x** release exists with an incompatible API
-(`server.registerTool(...)`, no `basePath`). `package.json` pins `^1.1.0` — keep
-1.x unless intentionally migrating (the 2.x diff is documented in README.md).
+`app/api/mcp/route.ts` uses the mcp-handler **2.x** API: `server.registerTool(...)`
+with an `inputSchema` that takes a full Standard Schema (`z.object({...})`),
+inside `createMcpHandler(..., { serverInfo })`, exporting the handler as
+`GET`/`POST`. There is no `basePath` (the handler is mounted at the route's own
+path) and no Redis. Requires `@modelcontextprotocol/server` (v2) and zod ^4.
+A **1.x** release used the old API (`server.tool(...)`, `basePath`,
+`@modelcontextprotocol/sdk` 1.x) — don't revert to it.
 
 ## Runtime quirks
 
-- mcp-handler 1.x runs the Streamable HTTP transport in **stateless mode**:
-  local testing needs **no Redis**. Redis is only needed for the SSE endpoint,
-  which this project doesn't use.
+- mcp-handler 2.x serves the Streamable HTTP transport in **stateless mode**:
+  local testing needs **no Redis** (SSE transport was removed in 2.x; Redis is
+  not needed or used).
 - `.env` exists locally but is gitignored — treat its contents as secrets; never
   log or commit them.
 - Not a git repository (yet). Next steps per README: replace the placeholder
