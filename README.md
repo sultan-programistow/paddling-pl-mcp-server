@@ -1,11 +1,23 @@
 # paddling.pl — MCP Server
 
 A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for
-**paddling.pl** — an online shop for ordering paddling adventures. Built to be
-hosted as a Vercel Function / Next.js API route using the
+**paddling.pl** — a Polish marketplace aggregating kayaking-trip offers from
+local operators across Poland, letting users discover routes, compare offers,
+check availability, and book & pay online. Built to be hosted as a Vercel
+Function / Next.js API route using the
 [`mcp-handler`](https://www.npmjs.com/package/mcp-handler) package, following
 the official
 [Vercel docs](https://vercel.com/docs/mcp/deploy-mcp-servers-to-vercel).
+
+## About paddling.pl
+
+Paddling.pl is a kayaking-trip marketplace founded in 2025 and headquartered in
+Gdańsk, Poland. It gathers verified local organizers across Poland's
+voivodeships — from family-friendly one-day routes to multi-day expeditions —
+and digitizes booking: users find routes matched to their needs, check
+availability, and reserve & pay online in minutes, while organizers gain a
+modern channel to reach new customers. Its mission is to digitize and simplify
+the Polish kayaking market.
 
 > **Status:** Step 1 of the Vercel guide — the MCP server is implemented and
 > ready to be **tested locally**. OAuth and deployment to Vercel are the next
